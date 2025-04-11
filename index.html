@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbox với Gemini</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: url(nen.jpg);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .custom-header {
+            background-color: #0d6efd;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+
+        /* CSS đơn giản chỉ thu gọn phần tên bot và nút điều chỉnh font */
+@media (max-width: 768px) {
+    /* Thu gọn phần tên bot */
+    .chatbox-header .d-flex.align-items-center img {
+        width: 30px;
+        height: 30px;
+    }
+    
+    .chatbox-header h5 {
+        font-size: 1rem;
+        margin-left: 5px;
+    }
+    
+    /* Thu gọn các nút điều khiển font */
+    .chatbox-header .btn-group {
+        margin-right: 5px;
+    }
+    
+    .chatbox-header .btn-group .btn {
+        padding: 2px 5px;
+        font-size: 0.7rem;
+    }
+    
+    /* Thu gọn nút hiển thị kích thước font */
+    #fontSizeDisplay {
+        min-width: 40px;
+        font-size: 0.7rem;
+        padding: 2px 5px;
+    }
+    
+    /* Thu gọn dropdown model */
+    .chatbox-header .dropdown .btn {
+        padding: 2px 8px;
+        font-size: 0.7rem;
+    }
+    
+    /* Bo gọn tổng thể header */
+    .chatbox-header {
+        padding: 10px;
+    }
+}
+
+        .header-button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2rem;
+            position: relative;
+            margin-left: 15px;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            font-size: 0.65rem;
+        }
+        
+        /* Main chatbox styles */
+        .main-container {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chatbox-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .chatbox-header {
+            background-color: #0d6efd;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .chatbox-header i {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+        
+        .chatbox-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(100vh - 240px);
+            background: url(background-anime.jpg);
+            background-size: cover;
+            background-repeat: no-repeat;
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        .message.user {
+            justify-content: flex-end;
+        }
+        
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .message.user .message-avatar {
+            order: 1;
+            margin-right: 0;
+            margin-left: 12px;
+            background-color: #0d6efd;
+            color: white;
+        }
+        
+        .message-content {
+            background-color: #f1f0f0;
+            padding: 12px 16px;
+            padding-right: 2rem;
+            border-radius: 18px;
+            max-width: 75%;
+            transition: font-size 0.3s ease;
+        }
+        
+        .message.user .message-content {
+            background-color: #0d6efd;
+            color: white;
+            padding-right: 3rem;
+        }
+        
+        .message-time {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-top: 5px;
+            text-align: right;
+        }
+        
+        .chatbox-input {
+            padding: 15px 20px;
+            border-top: 1px solid #dee2e6;
+            background-color: white;
+        }
+        
+        .input-group .form-control {
+            border-radius: 30px 0 0 30px;
+            padding: 12px 20px;
+        }
+        
+        .input-group .btn {
+            border-radius: 0 30px 30px 0;
+            padding: 12px 20px;
+        }
+      
+        
+        /* Typing indicator */
+        .typing-indicator {
+            display: flex;
+            padding: 12px 16px;
+            background-color: #f1f0f0;
+            border-radius: 18px;
+            max-width: 75%;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #6c757d;
+            border-radius: 50%;
+            margin: 0 2px;
+            display: inline-block;
+            animation: typing-bounce 1.4s infinite ease-in-out both;
+        }
+        
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes typing-bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        
+        /* Code blocks styling */
+        pre {
+            background-color: #343a40;
+            color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        code {
+            font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.9em;
+        }
+        
+        /* System messages */
+        .alert {
+            font-size: 0.85rem;
+            padding: 8px 12px;
+        }
+
+        /* Các class cho kích thước chữ khác nhau */
+        .message-content.font-size-xs {
+            font-size: 0.75rem;
+        }
+
+        .message-content.font-size-sm {
+            font-size: 0.875rem;
+        }
+
+        .message-content.font-size-md {
+            font-size: 1rem;
+        }
+
+        .message-content.font-size-lg {
+            font-size: 1.25rem;
+        }
+
+        .message-content.font-size-xl {
+            font-size: 1.5rem;
+        }
+
+        .message-content.font-size-xxl {
+            font-size: 2rem;
+        }
+
+        /* Class cho định dạng chữ */
+        .message-content.font-bold {
+            font-weight: bold;
+        }
+
+        .message-content.font-italic {
+            font-style: italic;
+        }
+
+        /* Tùy chỉnh màu và hiệu ứng cho các nút định dạng khi active */
+        .btn-format-active {
+            background-color: #ffffff;
+            color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(255,255,255,0.25);
+        }
+
+        /* Tùy chỉnh nút hiển thị kích thước chữ */
+        #fontSizeDisplay {
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* Tạo hiệu ứng hover cho các nút định dạng */
+        .btn-outline-light:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <nav class="navbar navbar-expand-lg custom-header navbar-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">AI Chatbox</a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Trang chủ</a>
+                    </li>
+                   
+                </ul>
+                
+                <div class="d-flex align-items-center">
+                    <button class="header-button" id="chatButton" title="Trò chuyện">
+                        <i class="fas fa-comments"></i>
+                        <span class="badge rounded-pill bg-danger notification-badge">3</span>
+                    </button>
+                    <button class="header-button" id="notesButton" title="Ghi chú">
+                        <i class="fas fa-sticky-note"></i>
+                        <span class="badge rounded-pill bg-danger notification-badge">2</span>
+                    </button>
+                    <button class="header-button" id="userButton" title="Tài khoản">
+                        <i class="fas fa-user-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Chatbox Section -->
+    <main class="main-container container">
+        <div class="chatbox-container">
+            <div class="chatbox-header">
+                <div class="d-flex align-items-center justify-content-between w-100">
+                    <div class="d-flex align-items-center">
+                        <i><img src="loiThan.png" width="50" height="50" alt=""></i>
+                        <h5 class="m-0">Nô Lệ Học Thức</h5>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <!-- Controls cho định dạng chữ -->
+                        <div class="btn-group me-2">
+                            <button class="btn btn-sm btn-outline-light" id="boldTextBtn" title="In đậm văn bản">
+                                <i class="fas fa-bold"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-light" id="italicTextBtn" title="In nghiêng văn bản">
+                                <i class="fas fa-italic"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Controls cho kích thước chữ -->
+                        <div class="btn-group me-3">
+                            <button class="btn btn-sm btn-outline-light" id="decreaseFontBtn" title="Giảm kích thước chữ">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <button class="btn btn-sm btn-light" id="fontSizeDisplay">100%</button>
+                            <button class="btn btn-sm btn-outline-light" id="increaseFontBtn" title="Tăng kích thước chữ">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Dropdown chọn model -->
+                        <div class="dropdown">
+                            <button class="btn btn-light btn-sm dropdown-toggle" type="button" id="modelSelector" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-microchip me-1"></i> Gemini Pro
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="modelSelector">
+                                <!-- Model Gemini 2.0 -->
+                                <li><a class="dropdown-item" href="#" data-model="gemini-2.0-flash">2.0 Flash</a></li>
+                                <li><a class="dropdown-item" href="#" data-model="gemini-2.0-flash-thinking">2.0 Flash Thinking (experimental)</a></li>
+                                
+                                <!-- Model Gemini 2.5 -->
+                                <li><a class="dropdown-item" href="#" data-model="gemini-2.5-pro">2.5 Pro (experimental)</a></li>
+                                
+                                <!-- Model Gemini đặc biệt -->
+                                <li><a class="dropdown-item" href="#" data-model="gemini-deep-research">Deep Research</a></li>
+                                <li><a class="dropdown-item" href="#" data-model="gemini-personalization">Personalization (experimental)</a></li>
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                
+                                <!-- Model Gemini 1.5 -->
+                                <li><a class="dropdown-item" href="#" data-model="gemini-1.5-pro">1.5 Pro</a></li>
+                                <li><a class="dropdown-item" href="#" data-model="gemini-1.5-pro-vision">1.5 Pro Vision</a></li>
+                                <li><a class="dropdown-item" href="#" data-model="gemini-1.5-flash">1.5 Flash</a></li>
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                
+                                <!-- Model Gemini 1.0 -->
+                                <li><a class="dropdown-item active" href="#" data-model="gemini-pro">1.0 Pro</a></li>
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                
+                                <!-- Model Claude -->
+                                <li><a class="dropdown-item" href="#" data-model="claude-3-opus">Claude 3 Opus</a></li>
+                                <li><a class="dropdown-item" href="#" data-model="claude-3-sonnet">Claude 3 Sonnet</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chatbox-messages" id="messageArea">
+                <!-- AI Welcome Message -->
+                <div class="message">
+                    <div class="message-avatar">
+                        <i><img src="loiThan.png" width="50" height="50" alt=""></i>
+                    </div>
+                    <div>
+                        <div class="message-content font-size-md">
+                            Xin chào! Tôi là Nô Lệ Học Thức tôi có thể giúp gì cho chủ nhân ạ ?
+                        </div>
+                        <div class="message-time">11:00</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chatbox-input">
+                <div class="input-group">
+                    <input type="text" id="userInput" class="form-control" placeholder="Nhập tin nhắn của bạn..." aria-label="User message">
+                    <button class="btn btn-primary" type="button" id="sendButton">
+                        <i class="fas fa-paper-plane"></i> Gửi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bootstrap JS và Popper JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    
+    <!-- Google Generative AI SDK - KHÔNG sử dụng, chỉ giữ lại để tương thích -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@google/generative-ai@0.1.3/dist/index.min.js"></script> -->
+    
+    <script>
+        // Các nút trong header
+        const chatButton = document.getElementById('chatButton');
+        const notesButton = document.getElementById('notesButton');
+        const userButton = document.getElementById('userButton');
+        const modelSelector = document.getElementById('modelSelector');
+        const messageArea = document.getElementById('messageArea');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        
+        // Tham chiếu đến các nút điều khiển font
+        const decreaseFontBtn = document.getElementById('decreaseFontBtn');
+        const increaseFontBtn = document.getElementById('increaseFontBtn');
+        const fontSizeDisplay = document.getElementById('fontSizeDisplay');
+        const boldTextBtn = document.getElementById('boldTextBtn');
+        const italicTextBtn = document.getElementById('italicTextBtn');
+        
+        // Biến lưu trữ model hiện tại
+        let currentModel = 'gemini-2.0-flash';
+        let genAI;
+        let aiModel;
+        
+        // Biến lưu trữ trạng thái font
+        let currentFontSizeIndex = 2; // Mặc định là 100% (font-size-md)
+        let isBold = false;
+        let isItalic = false;
+        
+        // Mảng các kích thước font và tỷ lệ phần trăm tương ứng
+        const fontSizes = [
+            { class: 'font-size-xs', percent: '75%' },
+            { class: 'font-size-sm', percent: '87.5%' },
+            { class: 'font-size-md', percent: '100%' },
+            { class: 'font-size-lg', percent: '125%' },
+            { class: 'font-size-xl', percent: '150%' },
+            { class: 'font-size-xxl', percent: '200%' }
+        ];
+        
+        // API KEY - Trong môi trường thực tế nên lưu trữ ở phía server
+        const API_KEY = 'AIzaSyBnr8GZ7sXi9-2348FvUKLzqBwntuLjaB8';
+        
+        // Xử lý sự kiện click cho các nút header
+        chatButton.addEventListener('click', function() {
+            console.log('Đã nhấp vào nút Trò chuyện');
+        });
+        
+        notesButton.addEventListener('click', function() {
+            console.log('Đã nhấp vào nút Ghi chú');
+        });
+        
+        userButton.addEventListener('click', function() {
+            console.log('Đã nhấp vào nút Tài khoản');
+        });
+        
+        // Khởi tạo Google Generative AI SDK
+        async function initAI() {
+            try {
+                // Không cần khởi tạo SDK, chúng ta sẽ sử dụng REST API trực tiếp
+                console.log(`Khởi tạo kết nối đến API Gemini với model ${currentModel}`);
+                
+                // Thêm thông báo welcome
+                const welcomeMessage = document.createElement('div');
+                welcomeMessage.className = 'alert alert-success mx-auto my-2 text-center w-75';
+                welcomeMessage.innerHTML = `<i class="fas fa-check-circle me-2"></i> Sẵn sàng kết nối với model ${currentModel}`;
+                messageArea.appendChild(welcomeMessage);
+                setTimeout(() => {
+                    welcomeMessage.remove();
+                }, 3000);
+                
+                // Áp dụng định dạng chữ cho tin nhắn chào mừng
+                applyFontSize();
+                applyBoldFormat();
+                applyItalicFormat();
+                
+            } catch (error) {
+                console.error('Lỗi khởi tạo:', error);
+                
+                // Thông báo lỗi
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'alert alert-danger mx-auto my-2 text-center w-75';
+                errorMessage.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> Lỗi kết nối: ${error.message}`;
+                messageArea.appendChild(errorMessage);
+            }
+        }
+        
+        // Hàm để chuyển đổi model (không cần khởi tạo đối tượng SDK)
+        async function switchModel(modelName) {
+            try {
+                console.log(`Đã chuyển sang model: ${modelName}`);
+                return true;
+            } catch (error) {
+                console.error(`Lỗi khi chuyển model sang ${modelName}:`, error);
+                return false;
+            }
+        }
+        
+        // Hàm để áp dụng kích thước chữ cho tất cả tin nhắn
+        function applyFontSize() {
+            const allMessages = document.querySelectorAll('.message-content');
+            const currentSize = fontSizes[currentFontSizeIndex];
+            
+            allMessages.forEach(message => {
+                // Xóa tất cả class kích thước cũ
+                fontSizes.forEach(size => {
+                    message.classList.remove(size.class);
+                });
+                
+                // Thêm class kích thước hiện tại
+                message.classList.add(currentSize.class);
+            });
+            
+            // Cập nhật hiển thị kích thước
+            fontSizeDisplay.textContent = currentSize.percent;
+            
+            // Lưu kích thước vào localStorage
+            localStorage.setItem('chatFontSizeIndex', currentFontSizeIndex);
+        }
+        
+        // Hàm để áp dụng in đậm cho tất cả tin nhắn
+        function applyBoldFormat() {
+            const allMessages = document.querySelectorAll('.message-content');
+            
+            allMessages.forEach(message => {
+                if (isBold) {
+                    message.classList.add('font-bold');
+                } else {
+                    message.classList.remove('font-bold');
+                }
+            });
+            
+            // Cập nhật trạng thái nút
+            if (isBold) {
+                boldTextBtn.classList.add('btn-format-active');
+            } else {
+                boldTextBtn.classList.remove('btn-format-active');
+            }
+            
+            // Lưu trạng thái vào localStorage
+            localStorage.setItem('chatFontBold', isBold);
+        }
+        
+        // Hàm để áp dụng in nghiêng cho tất cả tin nhắn
+        function applyItalicFormat() {
+            const allMessages = document.querySelectorAll('.message-content');
+            
+            allMessages.forEach(message => {
+                if (isItalic) {
+                    message.classList.add('font-italic');
+                } else {
+                    message.classList.remove('font-italic');
+                }
+            });
+            
+            // Cập nhật trạng thái nút
+            if (isItalic) {
+                italicTextBtn.classList.add('btn-format-active');
+            } else {
+                italicTextBtn.classList.remove('btn-format-active');
+            }
+            
+            // Lưu trạng thái vào localStorage
+            localStorage.setItem('chatFontItalic', isItalic);
+        }
+        
+        // Hàm để thêm tin nhắn vào khu vực chat
+        function addMessage(content, isUser = false) {
+            const now = new Date();
+            const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = isUser ? 'message user' : 'message';
+            
+            // Biểu tượng tương ứng với model đang sử dụng (nếu là tin nhắn của AI)
+            let modelIcon = 'loiThan.png';
+            if (!isUser) {
+                if (currentModel.includes('claude')) {
+                    modelIcon = 'loiThan.png';
+                } else if (currentModel.includes('gemini')) {
+                    modelIcon = 'loiThan.png';
+                }
+            }
+            
+            // Xác định các class định dạng chữ
+            const currentSize = fontSizes[currentFontSizeIndex];
+            let fontClasses = currentSize.class;
+            if (isBold) fontClasses += ' font-bold';
+            if (isItalic) fontClasses += ' font-italic';
+            
+            let messageHTML = '';
+            
+            if (isUser) {
+                messageHTML = `
+                    <div>
+                        <div class="message-content ${fontClasses}">${content}</div>
+                        <div class="message-time">${timeString}</div>
+                    </div>
+                    <div class="message-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                `;
+            } else {
+                messageHTML = `
+                      <div class="message-avatar">
+                        <img src="${modelIcon}" width="50" height="50" alt="Model Icon">
+                      </div>
+                      <div>
+                        <div class="message-content ${fontClasses}">${content}</div>
+                        <div class="message-time">${timeString}</div>
+                      </div>
+                `;
+            }
+            
+            messageDiv.innerHTML = messageHTML;
+            messageArea.appendChild(messageDiv);
+            messageArea.scrollTop = messageArea.scrollHeight;
+        }
+        
+        // Hiển thị typing indicator
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message';
+            typingDiv.id = 'typingIndicator';
+            
+            // Biểu tượng tương ứng với model
+            let modelIcon = 'loiThan.png';
+            if (currentModel.includes('claude')) {
+                modelIcon = 'loiThan.png';
+            }
+            
+            typingDiv.innerHTML = `
+                <div class="message-avatar">
+                    <img src="${modelIcon}" width="50" height="50" alt="Model Icon">
+                </div>
+                <div class="typing-indicator">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                </div>
+            `;
+            
+            messageArea.appendChild(typingDiv);
+            messageArea.scrollTop = messageArea.scrollHeight;
+        }
+        
+        // Ẩn typing indicator
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+        
+        // Hàm để gửi tin nhắn đến AI API và nhận phản hồi
+        async function sendToAI(userMessage) {
+            try {
+                // Hiển thị typing indicator
+                showTypingIndicator();
+                
+                let responseText = '';
+                
+                // Kiểm tra xem model có phải Gemini hay không
+                if (currentModel.includes('gemini')) {
+                    try {
+                        // Xác định endpoint dựa trên model
+                        let modelEndpoint = currentModel;
+                        
+                        // Map tên model hiển thị sang tên API endpoint thực tế
+                        if (currentModel === 'gemini-2.0-flash-thinking') modelEndpoint = 'gemini-pro';
+                        if (currentModel === 'gemini-1.5-flash') modelEndpoint = 'gemini-2.0-flash';
+                        
+                        // Tạo request body
+                        const requestBody = {
+                            contents: [{
+                                parts: [{ text: userMessage }]
+                            }]
+                        };
+                        
+                        // Gọi API trực tiếp qua fetch
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelEndpoint}:generateContent?key=${API_KEY}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(requestBody)
+                        });
+                        
+                        // Kiểm tra lỗi HTTP
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        
+                        // Parse JSON response
+                        const data = await response.json();
+                        
+                        // Kiểm tra lỗi từ API response
+                        if (data.error) {
+                            throw new Error(data.error.message || 'Lỗi API không xác định');
+                        }
+                        
+                        // Trích xuất tin nhắn phản hồi
+                        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                            const textParts = data.candidates[0].content.parts
+                                .filter(part => part.text)
+                                .map(part => part.text);
+                            
+                            responseText = textParts.join('\n');
+                        } else {
+                            throw new Error('Không thể trích xuất phản hồi từ API');
+                        }
+                    } catch (apiError) {
+                        console.error('Lỗi khi gọi Gemini API:', apiError);
+                        
+                        // Log detailed error for debugging
+                        console.error('Chi tiết lỗi:', apiError);
+                        
+                        // Sử dụng phản hồi giả lập trong trường hợp lỗi API
+                        responseText = `Xin lỗi, tôi gặp vấn đề khi xử lý yêu cầu của bạn với model ${currentModel}: ${apiError.message}`;
+                    }
+                } else {
+                    // Giả lập phản hồi cho các model khác (Claude, v.v.)
+                    await new Promise(resolve => setTimeout(resolve, 1500)); // Giả lập độ trễ mạng
+                    
+                    const simulatedResponses = {
+                        'claude-3-opus': [
+                            `[Claude 3 Opus] ${userMessage.length > 20 ? userMessage.substring(0, 20) + '...' : userMessage}? Đây là câu hỏi thú vị. Opus là model mạnh nhất của Anthropic, được thiết kế để xử lý các nhiệm vụ phức tạp nhất.`,
+                            `[Claude 3 Opus] Tôi đang phân tích câu hỏi của bạn với khả năng suy luận nâng cao. Opus có thể hiểu và phản hồi các yêu cầu phức tạp với độ chính xác cao.`
+                        ],
+                        'claude-3-sonnet': [
+                            `[Claude 3 Sonnet] Cảm ơn câu hỏi của bạn! Sonnet là model cân bằng giữa hiệu suất và tốc độ, phù hợp cho nhiều ứng dụng khác nhau.`,
+                            `[Claude 3 Sonnet] Tôi đang xử lý yêu cầu của bạn với tốc độ và hiệu quả. Sonnet được thiết kế để cân bằng giữa chi phí và khả năng.`
+                        ],
+                        'gemini-1.5-pro': [
+                            `[Gemini 1.5 Pro] Đây là phiên bản Gemini mới nhất với khả năng xử lý ngữ cảnh dài hơn và hiểu sâu hơn về các khái niệm phức tạp.`,
+                            `[Gemini 1.5 Pro] Tôi đang xử lý yêu cầu của bạn với khả năng multimodal nâng cao. Gemini 1.5 Pro có thể hiểu văn bản, hình ảnh và video tốt hơn.`
+                        ],
+                        'gemini-1.5-flash': [
+                            `[Gemini 1.5 Flash] Tôi đang xử lý câu hỏi của bạn với tốc độ tối ưu. Flash là phiên bản nhẹ và nhanh nhất của Gemini 1.5.`,
+                            `[Gemini 1.5 Flash] Đây là một câu hỏi thú vị. Flash được tối ưu hóa cho tốc độ và hiệu quả, phù hợp cho các ứng dụng thời gian thực.`
+                        ],
+                        'default': [
+                            "Tôi hiểu câu hỏi của bạn. Trí tuệ nhân tạo (AI) là khả năng của máy tính hoặc robot được điều khiển bởi máy tính để thực hiện các nhiệm vụ thường đòi hỏi trí thông minh của con người.",
+                            "Thật thú vị khi bạn hỏi về điều này. Theo hiểu biết của tôi, công nghệ blockchain là một hệ thống ghi chép thông tin theo cách khiến việc thay đổi, hack hoặc gian lận hệ thống trở nên khó khăn hoặc không thể.",
+                            "Đây là một câu hỏi hay. Machine Learning là một phần của AI tập trung vào việc phát triển các thuật toán cho phép máy tính học từ dữ liệu và cải thiện từ kinh nghiệm mà không cần được lập trình rõ ràng.",
+                            "Câu hỏi rất thú vị. Học sâu (Deep Learning) là một nhánh của machine learning sử dụng các mạng neural nhiều lớp để phân tích các mẫu dữ liệu khác nhau, tương tự như cách não con người xử lý thông tin."
+                        ]
+                    };
+                    
+                    // Lấy mảng phản hồi cho model hiện tại hoặc sử dụng mảng mặc định
+                    const responses = simulatedResponses[currentModel] || simulatedResponses['default'];
+                    
+                    // Lựa chọn một phản hồi ngẫu nhiên
+                    responseText = responses[Math.floor(Math.random() * responses.length)];
+                }
+                
+                // Ẩn typing indicator và hiển thị phản hồi
+                hideTypingIndicator();
+                addMessage(responseText, false);
+                
+            } catch (error) {
+                console.error('Lỗi khi gọi AI API:', error);
+                hideTypingIndicator();
+                addMessage(`Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn với model ${currentModel}. Vui lòng thử lại sau hoặc chọn model khác.`, false);
+            }
+        }
+        
+        // Xử lý sự kiện chọn model
+        document.querySelectorAll('.dropdown-item').forEach(item => {
+            item.addEventListener('click', async function(e) {
+                e.preventDefault();
+                
+                // Lấy thông tin model mới
+                const newModel = this.getAttribute('data-model');
+                const modelName = this.textContent;
+                
+                // Hiển thị thông báo đang chuyển đổi
+                const loadingMessage = document.createElement('div');
+                loadingMessage.className = 'alert alert-info mx-auto my-2 text-center w-75';
+                loadingMessage.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i> Đang chuyển sang model ${modelName}...`;
+                messageArea.appendChild(loadingMessage);
+                messageArea.scrollTop = messageArea.scrollHeight;
+                
+                // Cập nhật UI ngay lập tức
+                modelSelector.innerHTML = `<i class="fas fa-microchip me-1"></i> ${modelName}`;
+                document.querySelectorAll('.dropdown-item').forEach(el => {
+                    el.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                // Thử chuyển đổi model
+                try {
+                    // Nếu đang sử dụng Gemini API thì gọi hàm chuyển đổi
+                    if (newModel.includes('gemini')) {
+                        // Chuyển đổi model Gemini
+                        await switchModel(newModel);
+                        currentModel = newModel;
+                    } else {
+                        // Xử lý khác cho các model không phải Gemini (Claude, v.v.)
+                        currentModel = newModel;
+                        console.log(`Model ${newModel} hiện không được hỗ trợ trực tiếp, đang sử dụng giả lập.`);
+                    }
+                    
+                    // Xóa thông báo đang tải
+                    loadingMessage.remove();
+                    
+                    // Thêm thông báo thành công
+                    const successMessage = document.createElement('div');
+                    successMessage.className = 'alert alert-success mx-auto my-2 text-center w-75';
+                    successMessage.innerHTML = `<i class="fas fa-check-circle me-2"></i> Đã chuyển sang model ${modelName}`;
+                    messageArea.appendChild(successMessage);
+                    
+                    // Tự động xóa thông báo sau 3 giây
+                    setTimeout(() => {
+                        successMessage.remove();
+                    }, 3000);
+                    
+                } catch (error) {
+                    // Xóa thông báo đang tải
+                    loadingMessage.remove();
+                    
+                    // Hiển thị thông báo lỗi
+                    const errorMessage = document.createElement('div');
+                    errorMessage.className = 'alert alert-danger mx-auto my-2 text-center w-75';
+                    errorMessage.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> Không thể chuyển sang model ${modelName}: ${error.message}`;
+                    messageArea.appendChild(errorMessage);
+                }
+                
+                messageArea.scrollTop = messageArea.scrollHeight;
+            });
+        });
+        
+        // Xử lý khi người dùng gửi tin nhắn
+        function handleUserMessage() {
+            const message = userInput.value.trim();
+            if (message) {
+                // Hiển thị tin nhắn của người dùng
+                addMessage(message, true);
+                
+                // Xóa input
+                userInput.value = '';
+                
+                // Gửi tin nhắn đến AI và hiển thị phản hồi
+                sendToAI(message);
+            }
+        }
+        
+        // Thêm event listener cho các nút điều khiển font
+        decreaseFontBtn.addEventListener('click', function() {
+            if (currentFontSizeIndex > 0) {
+                currentFontSizeIndex--;
+                applyFontSize();
+            }
+        });
+
+        increaseFontBtn.addEventListener('click', function() {
+            if (currentFontSizeIndex < fontSizes.length - 1) {
+                currentFontSizeIndex++;
+                applyFontSize();
+            }
+        });
+
+        boldTextBtn.addEventListener('click', function() {
+            isBold = !isBold;
+            applyBoldFormat();
+        });
+
+        italicTextBtn.addEventListener('click', function() {
+            isItalic = !isItalic;
+            applyItalicFormat();
+        });
+        
+        // Thêm event listener
+        sendButton.addEventListener('click', handleUserMessage);
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleUserMessage();
+            }
+        });
+        
+        // Khôi phục cài đặt font từ localStorage khi tải trang
+        function loadFontSettings() {
+            // Khôi phục kích thước chữ
+            const savedFontSizeIndex = localStorage.getItem('chatFontSizeIndex');
+            if (savedFontSizeIndex !== null) {
+                currentFontSizeIndex = parseInt(savedFontSizeIndex);
+            }
+            
+            // Khôi phục định dạng in đậm
+            const savedBold = localStorage.getItem('chatFontBold');
+            if (savedBold !== null) {
+                isBold = savedBold === 'true';
+            }
+            
+            // Khôi phục định dạng in nghiêng
+            const savedItalic = localStorage.getItem('chatFontItalic');
+            if (savedItalic !== null) {
+                isItalic = savedItalic === 'true';
+            }
+            
+            // Áp dụng tất cả cài đặt
+            applyFontSize();
+            applyBoldFormat();
+            applyItalicFormat();
+        }
+        
+        // Khởi tạo AI và cài đặt font khi trang được tải
+        window.addEventListener('DOMContentLoaded', function() {
+            loadFontSettings();
+            initAI();
+        });
+    </script>
+</body>
+</html>
